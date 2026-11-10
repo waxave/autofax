@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          # Keep in sync with the Ruby version pinned in mise.toml.
+          ruby-version: "4.0.9"
+          bundler-cache: true
+
+      - name: Run tests
+        run: bundle exec rspec
+
+      - name: Build gem
+        run: gem build autofax.gemspec
+
+      - name: Publish to RubyGems
+        env:
+          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          if [ -z "${RUBYGEMS_API_KEY:-}" ]; then
+            echo "error: RUBYGEMS_API_KEY secret is not set" >&2
+            exit 1
+          fi
+          mkdir -p ~/.gem
+          printf -- "---\n:rubygems_api_key: %s\n" "$RUBYGEMS_API_KEY" > ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+          gem push autofax-*.gem
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: autofax-*.gem
+          generate_release_notes: true

@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Build, tag, and publish an autofax release.
+#
+# Usage:
+#   script/release            # run tests, build, tag vX.Y.Z, push branch + tag
+#   script/release --local    # run tests, build, tag locally (no push)
+#   script/release --gem      # also publish the built gem to RubyGems
+#   script/release --dry-run  # print the commands without running them
+#   script/release --help
+#
+# The version is read from lib/autofax/version.rb and the tag is "v" + version.
+
+cd "$(dirname "$0")/.."
+
+LOCAL=0
+PUSH_GEM=0
+DRY_RUN=0
+
+usage() {
+  sed -n '3,14p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --local) LOCAL=1 ;;
+    --gem|--push-gem) PUSH_GEM=1 ;;
+    --dry-run) DRY_RUN=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *)
+      echo "unknown option: $arg" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+run() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '+ %s\n' "$*"
+  else
+    "$@"
+  fi
+}
+
+VERSION="$(ruby -Ilib -e 'require "autofax/version"; print Autofax::VERSION')"
+TAG="v${VERSION}"
+
+echo "Releasing autofax ${VERSION} (tag ${TAG})"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "error: working tree is not clean; commit or stash changes first" >&2
+  exit 1
+fi
+
+if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+  echo "error: tag ${TAG} already exists" >&2
+  exit 1
+fi
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$BRANCH" != "main" ]; then
+  echo "warning: releasing from branch '${BRANCH}' (expected main)" >&2
+fi
+
+run bundle exec rspec
+run gem build autofax.gemspec
+run git tag -a "$TAG" -m "autofax ${TAG}"
+
+if [ "$LOCAL" -eq 0 ]; then
+  run git push origin HEAD
+  run git push origin "$TAG"
+else
+  echo "Skipping push (--local). Tag ${TAG} created locally."
+fi
+
+if [ "$PUSH_GEM" -eq 1 ]; then
+  run gem push "autofax-${VERSION}.gem"
+fi
+
+echo "Done: autofax ${VERSION}."

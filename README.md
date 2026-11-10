@@ -295,10 +295,26 @@ mise run test         # full RSpec suite
 mise run test:cli     # CLI specs only
 mise run check        # Ruby syntax checks and full test suite
 mise run build        # build autofax.gem
+mise run release      # test, build, tag vX.Y.Z, and push branch + tag
+mise run release:local # test, build, and tag locally without pushing
+mise run release:gem  # release and publish the gem to RubyGems
 ```
 
 Run `mise tasks` to list the available tasks. The equivalent direct test
 commands are `bundle exec rspec` and `bundle exec rspec spec/cli_spec.rb`.
+
+### Releasing
+
+`mise run release` reads the version from `lib/autofax/version.rb`, runs the
+suite, builds the gem, creates an annotated `vX.Y.Z` tag, and pushes the branch
+and tag. Use `mise run release:local` to create the tag without pushing, or
+`script/release --gem` to also `gem push`. The script refuses to run on a dirty
+working tree or when the tag already exists.
+
+Pushing a `v*` tag triggers `.github/workflows/release.yml`, which runs the
+tests, publishes the gem to RubyGems (via the `RUBYGEMS_API_KEY` secret), and
+creates a GitHub release with the built `.gem`. `.github/workflows/ci.yml` runs
+the suite on every push to `main` and on pull requests.
 
 ### Fixtures
 

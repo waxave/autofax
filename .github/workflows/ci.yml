@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: RSpec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          # Keep in sync with the Ruby version pinned in mise.toml.
+          ruby-version: "4.0.9"
+          bundler-cache: true
+
+      - name: Run tests
+        run: bundle exec rspec

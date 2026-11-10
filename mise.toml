@@ -28,3 +28,15 @@ bundle exec rspec
 [tasks.build]
 description = "Build the autofax gem"
 run = "gem build autofax.gemspec"
+
+[tasks.release]
+description = "Test, build, tag (vX.Y.Z), and push a release"
+run = "./script/release"
+
+[tasks."release:local"]
+description = "Test, build, and tag a release locally without pushing"
+run = "./script/release --local"
+
+[tasks."release:gem"]
+description = "Release and publish the built gem to RubyGems"
+run = "./script/release --gem"
