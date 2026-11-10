@@ -1,0 +1,30 @@
+[tools]
+ruby = "4.0.9"
+
+[tasks.setup]
+description = "Install Ruby gem dependencies"
+run = "bundle install"
+
+[tasks.test]
+description = "Run the complete RSpec suite"
+run = "bundle exec rspec"
+
+[tasks."test:cli"]
+description = "Run CLI specs"
+run = "bundle exec rspec spec/cli_spec.rb"
+
+[tasks.check]
+description = "Run Ruby syntax checks and the complete test suite"
+run = """
+set -eu
+ruby -c lib/autofax.rb
+ruby -c lib/autofax/client.rb
+ruby -c lib/autofax/cache_store.rb
+ruby -c lib/autofax/cli.rb
+ruby -c exe/autofax
+bundle exec rspec
+"""
+
+[tasks.build]
+description = "Build the autofax gem"
+run = "gem build autofax.gemspec"
